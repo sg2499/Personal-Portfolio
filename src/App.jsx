@@ -21,6 +21,7 @@ const stats = [
 
 const highlights = [
   '2 years of industry experience',
+  'Data Scientist',
   'Ex-Teleperformance',
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
