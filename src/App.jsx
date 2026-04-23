@@ -26,7 +26,7 @@ const highlights = [
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
   'AI / LLM engineering focus',
-  'GitHub projects + technical blog',
+  'GitHub Projects + Technical Blog',
 ]
 
 const education = [
