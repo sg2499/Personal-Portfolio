@@ -14,19 +14,18 @@ const navItems = [
 
 const stats = [
   { value: '2+', label: 'Years of experience' },
-  { value: '8+', label: 'Flagship project showcases' },
+  { value: '9+', label: 'Flagship project showcases' },
   { value: '3', label: 'Major education anchors' },
   { value: '6+', label: 'Certifications highlighted' },
 ]
 
 const highlights = [
-  '2 Years of Industry Experience',
-  'Data Scientist',
+  '2 years of industry experience',
   'Ex-Teleperformance',
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
-  'AI / LLM Engineering Focus',
-  'GitHub Projects + Technical Blog'
+  'AI / LLM engineering focus',
+  'GitHub projects + technical blog',
 ]
 
 const education = [
@@ -77,6 +76,14 @@ const skillGroups = [
 ]
 
 const projects = [
+  {
+    title: 'Deep Research Agent',
+    category: 'Agentic AI System',
+    description:
+      'A multi-agent deep research system built with Gradio, OpenAI Agents SDK, Pydantic, SendGrid, and web search. It follows a clarification-first workflow, creates structured research plans, runs targeted evidence gathering, and generates professional long-form reports with optional email delivery.',
+    stack: ['OpenAI Agents SDK', 'Gradio', 'Pydantic', 'Web Search', 'SendGrid'],
+    repo: 'https://github.com/sg2499/Deep-Research-Agent',
+  },
   {
     title: 'OpenAI-Enhanced QA ChatBot',
     category: 'Applied GenAI',
@@ -153,11 +160,12 @@ const certifications = [
 ]
 
 const blogPosts = [
-  'Movie Recommender System',
-  'Stock Price Predictor',
-  'Campus Placement Predictor',
-  'IPL Win Probability Predictor',
-  'Udemy Course Recommendation System',
+  { title: 'Deep Research Agent', href: 'https://prismatic-metrics.blogspot.com/2026/04/deep-research-agent-author-shailesh.html' },
+  { title: 'Movie Recommender System', href: blogUrl },
+  { title: 'Stock Price Predictor', href: blogUrl },
+  { title: 'Campus Placement Predictor', href: blogUrl },
+  { title: 'IPL Win Probability Predictor', href: blogUrl },
+  { title: 'Udemy Course Recommendation System', href: blogUrl },
 ]
 
 const contactLinks = [
@@ -273,7 +281,7 @@ function App() {
                     </div>
                     <div>
                       <div className="text-xs text-white/45">Current Focus</div>
-                      <div className="mt-1 text-sm leading-7 text-white/75">LLM engineering, RAG workflows, OpenAI-based applications, fine-tuning concepts, and end-to-end portfolio building.</div>
+                      <div className="mt-1 text-sm leading-7 text-white/75">LLM engineering, RAG workflows, agentic systems, OpenAI-based applications, and end-to-end portfolio building.</div>
                     </div>
                   </div>
                 </div>
@@ -301,7 +309,7 @@ function App() {
               My background combines production-grade machine learning experience, structured data science education, and an active shift toward applied AI engineering. I started in industry by working on business-critical ML use cases, where success depended not just on model accuracy, but on workflows, stakeholder alignment, and usable outcomes.
             </p>
             <p className="mt-5 leading-8">
-              That foundation was strengthened through academic and professional learning at IIT Roorkee and IIIT Bangalore, and is now expanding through hands-on work in LLMs, RAG pipelines, prompt engineering, and AI application building. I aim to be the kind of practitioner who can understand the business problem, build the technical system, and communicate the result clearly.
+              That foundation was strengthened through academic and professional learning at IIT Roorkee and IIIT Bangalore, and is now expanding through hands-on work in LLMs, RAG pipelines, prompt engineering, agentic systems, and AI application building. I aim to be the kind of practitioner who can understand the business problem, build the technical system, and communicate the result clearly.
             </p>
           </div>
         </section>
@@ -437,9 +445,9 @@ function App() {
               Through LinkedIn activity and my blog, Prismatic Metrics, I share project launches, learning progress, AI milestones, and technical writeups that extend my profile beyond a static resume.
             </p>
             <div className="mt-6 grid gap-3">
-              {blogPosts.map((title) => (
-                <a key={title} href={blogUrl} target="_blank" rel="noreferrer" className="rounded-2xl border border-white/10 bg-neutral-900/60 p-4 text-left text-sm text-white/72 transition hover:bg-neutral-900">
-                  {title}
+              {blogPosts.map((post) => (
+                <a key={post.title} href={post.href} target="_blank" rel="noreferrer" className="rounded-2xl border border-white/10 bg-neutral-900/60 p-4 text-left text-sm text-white/72 transition hover:bg-neutral-900">
+                  {post.title}
                 </a>
               ))}
             </div>
