@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 const profileImage = 'https://raw.githubusercontent.com/sg2499/Personal-Documents/main/PP.jpg'
-const faviconImage = 'public/favicon.png'
-const previewImage = 'public/preview.png'
+const faviconImage = '/favicon.png'
+const previewImage = '/preview.png'
 const resumeUrl = 'https://raw.githubusercontent.com/sg2499/Personal-Documents/main/SHAILESH%20GUPTA%20-%20New%20Resume.pdf'
 const githubUrl = 'https://github.com/sg2499'
 const blogUrl = 'https://prismatic-metrics.blogspot.com/'
