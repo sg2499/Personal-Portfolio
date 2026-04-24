@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 const profileImage = 'https://raw.githubusercontent.com/sg2499/Personal-Documents/main/PP.jpg'
+const faviconImage = '/favicon.png'
+const previewImage = '/preview.png'
 const resumeUrl = 'https://raw.githubusercontent.com/sg2499/Personal-Documents/main/SHAILESH%20GUPTA%20-%20New%20Resume.pdf'
 const githubUrl = 'https://github.com/sg2499'
 const blogUrl = 'https://prismatic-metrics.blogspot.com/'
@@ -25,12 +27,11 @@ const stats = [
 
 const highlights = [
   '2 years of industry experience',
-  'Data Scientist',
   'Ex-Teleperformance',
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
   'AI / LLM engineering focus',
-  'GitHub Projects + Technical Blog',
+  'GitHub projects + technical blog',
 ]
 
 const education = [
@@ -421,8 +422,11 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       <section id="ai-bot" className="scroll-mt-24 mt-24">
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-[2rem] border border-blue-400/20 bg-blue-500/10 p-8">
-            <div className="text-sm font-medium uppercase tracking-[0.2em] text-blue-300">ShaileshGPT</div>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
+            <div className="flex items-center gap-3">
+              <img src={faviconImage} alt="SG logo" className="h-11 w-11 rounded-2xl object-cover ring-1 ring-blue-300/30" />
+              <div className="text-sm font-medium uppercase tracking-[0.2em] text-blue-300">ShaileshGPT</div>
+            </div>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
               A portfolio that does not just sit there looking pretty.
             </h2>
             <p className="mt-5 text-sm leading-8 text-white/70 md:text-base">
@@ -645,10 +649,13 @@ function App() {
 
       <header className="sticky top-0 z-30 border-b border-white/10 bg-neutral-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-          <div>
-            <div className="text-lg font-semibold tracking-wide">Shailesh Gupta</div>
-            <div className="text-xs text-white/60">Data Scientist · AI / LLM Engineer Track</div>
-          </div>
+          <button onClick={() => scrollToSection('top')} className="flex items-center gap-3 text-left">
+            <img src={faviconImage} alt="SG logo" className="h-10 w-10 rounded-2xl object-cover ring-1 ring-white/10" />
+            <div>
+              <div className="text-lg font-semibold tracking-wide">Shailesh Gupta</div>
+              <div className="text-xs text-white/60">Data Scientist · AI / LLM Engineer Track</div>
+            </div>
+          </button>
           <nav className="hidden gap-3 md:flex">
             {navItems.map((item) => (
               <button
@@ -670,7 +677,7 @@ function App() {
       </header>
 
       <main className="relative mx-auto max-w-7xl px-6 pb-20 pt-10 lg:px-8 lg:pt-16">
-        <section className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+        <section id="top" className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <div>
             <div className="mb-5 inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-1.5 text-sm text-blue-200">
               Open to full-time roles in Data Science, Applied AI, and AI Engineering
@@ -716,7 +723,10 @@ function App() {
             <div className="absolute -left-6 -top-6 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
             <div className="absolute -bottom-8 -right-4 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
             <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl shadow-blue-950/30 backdrop-blur-sm">
-              <div className="grid gap-5 md:grid-cols-[0.92fr_1.08fr] md:items-center">
+              <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-neutral-900/70">
+                <img src={previewImage} alt="Shailesh Gupta portfolio preview" className="w-full object-cover" />
+              </div>
+              <div className="mt-5 grid gap-5 md:grid-cols-[0.82fr_1.18fr] md:items-center">
                 <div className="rounded-[1.5rem] border border-white/10 bg-neutral-900/70 p-3">
                   <img src={profileImage} alt="Shailesh Gupta" className="aspect-[4/4.6] w-full rounded-[1.25rem] object-cover object-top" />
                 </div>
