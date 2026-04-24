@@ -9,9 +9,54 @@ html {
 body {
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #0a0a0a;
+  background: #020617;
 }
 
 * {
   box-sizing: border-box;
+}
+
+.bot-markdown h2 {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: rgba(219, 234, 254, 0.98);
+}
+
+.bot-markdown h3 {
+  margin: 0.25rem 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: rgba(191, 219, 254, 0.96);
+}
+
+.bot-markdown ul {
+  margin: 0.25rem 0;
+  padding-left: 1.1rem;
+  list-style: disc;
+}
+
+.bot-markdown li {
+  margin: 0.2rem 0;
+}
+
+.bot-markdown strong {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.3);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(96, 165, 250, 0.48);
 }

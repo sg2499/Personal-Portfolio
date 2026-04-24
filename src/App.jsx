@@ -1,11 +1,15 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+
 const profileImage = 'https://raw.githubusercontent.com/sg2499/Personal-Documents/main/PP.jpg'
 const resumeUrl = 'https://raw.githubusercontent.com/sg2499/Personal-Documents/main/SHAILESH%20GUPTA%20-%20New%20Resume.pdf'
 const githubUrl = 'https://github.com/sg2499'
 const blogUrl = 'https://prismatic-metrics.blogspot.com/'
 const linkedinUrl = 'https://www.linkedin.com/in/shailesh-gupta-7b7278188'
+const defaultApiBase = import.meta.env.VITE_SHAILESHGPT_API_BASE || 'https://shaileshgpt-backend.onrender.com'
 
 const navItems = [
   { label: 'About', id: 'about' },
+  { label: 'AI Bot', id: 'ai-bot' },
   { label: 'Experience', id: 'experience' },
   { label: 'Projects', id: 'projects' },
   { label: 'Skills', id: 'skills' },
@@ -21,12 +25,11 @@ const stats = [
 
 const highlights = [
   '2 years of industry experience',
-  'Data Scientist',
   'Ex-Teleperformance',
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
   'AI / LLM engineering focus',
-  'GitHub Projects + Technical Blog',
+  'GitHub projects + technical blog',
 ]
 
 const education = [
@@ -77,6 +80,15 @@ const skillGroups = [
 ]
 
 const projects = [
+  {
+    title: 'ShaileshGPT Portfolio Chatbot',
+    category: 'Agentic RAG Product',
+    description:
+      'A personal AI twin integrated into this portfolio. It uses a structured knowledge base, streaming chat, JD-fit analysis, recruiter lead capture, Pushover + SendGrid notifications, and a polished website widget experience.',
+    stack: ['Agentic RAG', 'FastAPI', 'Gradio', 'OpenAI', 'React', 'SendGrid'],
+    repo: githubUrl,
+    featured: true,
+  },
   {
     title: 'Deep Research Agent',
     category: 'Agentic AI System',
@@ -176,6 +188,450 @@ const contactLinks = [
   { label: 'Email', href: 'mailto:shaileshgupta841@gmail.com' },
 ]
 
+const starterQuestions = [
+  'What kind of AI and ML work has Shailesh done?',
+  'Is Shailesh a good fit for an Applied AI role?',
+  'Tell me about his Teleperformance experience.',
+  'Which project best proves his LLM direction?',
+]
+
+function classNames(...items) {
+  return items.filter(Boolean).join(' ')
+}
+
+function MarkdownLite({ text }) {
+  const html = useMemo(() => {
+    const safe = (text || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+
+    return safe
+      .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^- (.*)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+      .replace(/\n\n/g, '<br/><br/>')
+  }, [text])
+
+  return <div className="bot-markdown" dangerouslySetInnerHTML={{ __html: html }} />
+}
+
+function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
+  const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState('chat')
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content:
+        "Hey, I’m ShaileshGPT — Shailesh’s portfolio twin. Ask me about his work, projects, skills, JD fit, or whether he treats cricket like a second operating system.",
+    },
+  ])
+  const [input, setInput] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [leadStatus, setLeadStatus] = useState('')
+  const [jdStatus, setJdStatus] = useState('')
+  const [jdQuestion, setJdQuestion] = useState('Is Shailesh a good fit for this role?')
+  const [leadForm, setLeadForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    linkedin: '',
+    github: '',
+    website: '',
+    other_contact: '',
+    message: '',
+  })
+  const [jdFile, setJdFile] = useState(null)
+  const bottomRef = useRef(null)
+
+  const configured = Boolean(apiBase)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, open, tab])
+
+  const updateLead = (field, value) => {
+    setLeadForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const addMessage = (message) => {
+    setMessages((prev) => [...prev, message])
+  }
+
+  const streamChat = async (question) => {
+    if (!configured) {
+      addMessage({
+        role: 'assistant',
+        content:
+          'The bot backend is not connected yet. Add VITE_SHAILESHGPT_API_BASE in Vercel and point it to your deployed FastAPI backend.',
+      })
+      return
+    }
+
+    const userMessage = { role: 'user', content: question }
+    const historyForApi = messages.map(({ role, content }) => ({ role, content }))
+
+    setMessages((prev) => [...prev, userMessage, { role: 'assistant', content: '' }])
+    setIsStreaming(true)
+
+    try {
+      const response = await fetch(`${apiBase}/chat_stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: question, history: historyForApi }),
+      })
+
+      if (!response.ok || !response.body) {
+        throw new Error('Chat stream unavailable')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+      let answer = ''
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const events = buffer.split('\n\n')
+        buffer = events.pop() || ''
+
+        for (const event of events) {
+          const dataLine = event.split('\n').find((line) => line.startsWith('data: '))
+          if (!dataLine) continue
+
+          const payload = JSON.parse(dataLine.slice(6))
+          if (payload.error) throw new Error(payload.error)
+          if (payload.token) {
+            answer += payload.token
+            setMessages((prev) => {
+              const next = [...prev]
+              next[next.length - 1] = { role: 'assistant', content: answer }
+              return next
+            })
+          }
+        }
+      }
+    } catch (error) {
+      setMessages((prev) => {
+        const next = [...prev]
+        next[next.length - 1] = {
+          role: 'assistant',
+          content:
+            'The portfolio assistant is temporarily unavailable. Very dramatic, yes — but the rest of the site still shows the receipts.',
+        }
+        return next
+      })
+    } finally {
+      setIsStreaming(false)
+    }
+  }
+
+  const handleSubmit = async (event) => {
+    event?.preventDefault()
+    const question = input.trim()
+    if (!question || isStreaming) return
+    setInput('')
+    await streamChat(question)
+  }
+
+  const handleStarter = async (question) => {
+    setOpen(true)
+    setTab('chat')
+    await streamChat(question)
+  }
+
+  const submitLead = async (event) => {
+    event.preventDefault()
+    if (!configured) {
+      setLeadStatus('The contact endpoint is not connected yet. Add your API backend URL in Vercel.')
+      return
+    }
+
+    setLeadStatus('Sending...')
+    try {
+      const response = await fetch(`${apiBase}/lead`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...leadForm, source: 'Portfolio website widget' }),
+      })
+      const data = await response.json()
+      setLeadStatus(data.message || 'Sent.')
+    } catch (error) {
+      setLeadStatus('Could not send right now. The internet chose chaos, apparently.')
+    }
+  }
+
+  const analyzeJd = async (event) => {
+    event.preventDefault()
+    if (!configured) {
+      setJdStatus('The JD analysis backend is not connected yet. Add VITE_SHAILESHGPT_API_BASE in Vercel.')
+      return
+    }
+    if (!jdFile) {
+      setJdStatus('Upload a JD first. Even the best all-rounder needs to see the pitch.')
+      return
+    }
+
+    setTab('chat')
+    setJdStatus('Analyzing JD...')
+    const userContent = `Uploaded JD: ${jdFile.name}\nQuestion: ${jdQuestion}`
+    setMessages((prev) => [...prev, { role: 'user', content: userContent }, { role: 'assistant', content: '' }])
+
+    try {
+      const form = new FormData()
+      form.append('file', jdFile)
+      form.append('question', jdQuestion)
+
+      const response = await fetch(`${apiBase}/jd_fit`, {
+        method: 'POST',
+        body: form,
+      })
+
+      if (!response.ok) throw new Error('JD analysis failed')
+      const data = await response.json()
+      const answer = data.answer || 'JD analysis finished, but no answer came back.'
+
+      setMessages((prev) => {
+        const next = [...prev]
+        next[next.length - 1] = { role: 'assistant', content: answer }
+        return next
+      })
+      setJdStatus('Analysis complete.')
+    } catch (error) {
+      setMessages((prev) => {
+        const next = [...prev]
+        next[next.length - 1] = {
+          role: 'assistant',
+          content: 'Could not analyze that JD right now. The backend pulled a hamstring.',
+        }
+        return next
+      })
+      setJdStatus('Could not analyze JD.')
+    }
+  }
+
+  return (
+    <>
+      <section id="ai-bot" className="scroll-mt-24 mt-24">
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-[2rem] border border-blue-400/20 bg-blue-500/10 p-8">
+            <div className="text-sm font-medium uppercase tracking-[0.2em] text-blue-300">ShaileshGPT</div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
+              A portfolio that does not just sit there looking pretty.
+            </h2>
+            <p className="mt-5 text-sm leading-8 text-white/70 md:text-base">
+              I built a personal AI twin into this website so recruiters and collaborators can ask questions directly,
+              compare a job description against my profile, and leave contact details without hunting across tabs like it is a side quest.
+            </p>
+            <div className="mt-6 grid gap-3">
+              {[
+                'Streaming portfolio chat',
+                'Recruiter JD-fit analysis',
+                'Lead capture via Pushover + SendGrid',
+                'Grounded answers from my profile and projects',
+              ].map((item) => (
+                <div key={item} className="rounded-2xl border border-white/10 bg-neutral-950/40 px-4 py-3 text-sm text-white/75">
+                  {item}
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setOpen(true)}
+              className="mt-7 rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-neutral-950 transition hover:scale-[1.02]"
+            >
+              Launch ShaileshGPT
+            </button>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
+            <div className="rounded-[1.5rem] border border-white/10 bg-neutral-950/80 p-5">
+              <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                <img src={profileImage} alt="ShaileshGPT" className="h-11 w-11 rounded-full object-cover object-top ring-2 ring-blue-300/40" />
+                <div>
+                  <div className="font-semibold">ShaileshGPT</div>
+                  <div className="text-xs text-white/50">AI portfolio assistant · Agentic RAG · Recruiter mode</div>
+                </div>
+              </div>
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-7 text-white/72">
+                Ask me whether Shailesh fits your AI role, what he built at Teleperformance, which project proves his LLM direction,
+                or why cricket is probably the fastest way to start a conversation.
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {starterQuestions.map((question) => (
+                  <button
+                    key={question}
+                    onClick={() => handleStarter(question)}
+                    className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left text-sm leading-6 text-white/75 transition hover:border-blue-300/30 hover:bg-blue-500/10"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className="fixed bottom-6 right-6 z-50 flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-gradient-to-br from-blue-500 to-cyan-400 text-2xl shadow-2xl shadow-blue-950/40 transition hover:scale-105"
+        aria-label="Open ShaileshGPT"
+      >
+        <span>{open ? '×' : '💬'}</span>
+      </button>
+
+      {open && (
+        <div className="fixed bottom-28 right-6 z-50 flex h-[720px] max-h-[calc(100vh-8rem)] w-[430px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[1.5rem] border border-white/15 bg-neutral-950 shadow-2xl shadow-blue-950/40">
+          <div className="border-b border-white/10 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 p-4">
+            <div className="flex items-center gap-3">
+              <img src={profileImage} alt="ShaileshGPT" className="h-11 w-11 rounded-full object-cover object-top ring-2 ring-cyan-200/40" />
+              <div>
+                <div className="font-semibold">ShaileshGPT</div>
+                <div className="text-xs leading-5 text-white/55">Ask, compare a JD, or connect with Shailesh.</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 border-b border-white/10 bg-neutral-950 p-3">
+            {[
+              { id: 'chat', label: 'Chat' },
+              { id: 'jd', label: 'JD Fit' },
+              { id: 'connect', label: 'Connect' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setTab(item.id)}
+                className={classNames(
+                  'flex-1 rounded-full px-3 py-2 text-xs font-semibold transition',
+                  tab === item.id ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/65 hover:bg-white/10'
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'chat' && (
+            <>
+              <div className="flex-1 overflow-y-auto bg-[#050914] p-4">
+                <div className="space-y-3">
+                  {messages.map((message, index) => (
+                    <div
+                      key={`${message.role}-${index}`}
+                      className={classNames(
+                        'max-w-[86%] rounded-2xl border px-4 py-3 text-sm leading-7',
+                        message.role === 'user'
+                          ? 'ml-auto border-cyan-200/15 bg-blue-500/20 text-white'
+                          : 'border-white/10 bg-white/[0.055] text-white/78'
+                      )}
+                    >
+                      <MarkdownLite text={message.content} />
+                    </div>
+                  ))}
+                  {isStreaming && (
+                    <div className="w-fit rounded-full border border-white/10 bg-white/[0.055] px-4 py-2 text-xs text-white/50">
+                      ShaileshGPT is typing...
+                    </div>
+                  )}
+                  <div ref={bottomRef} />
+                </div>
+              </div>
+              <form onSubmit={handleSubmit} className="flex gap-2 border-t border-white/10 bg-neutral-950 p-3">
+                <input
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder="Ask anything about Shailesh..."
+                  className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
+                />
+                <button
+                  disabled={isStreaming}
+                  className="rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </form>
+            </>
+          )}
+
+          {tab === 'jd' && (
+            <form onSubmit={analyzeJd} className="flex-1 overflow-y-auto bg-[#050914] p-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-sm leading-7 text-white/70">
+                Upload a JD and I will compare it with Shailesh&apos;s profile: skills, projects, certifications, experience, and current AI direction.
+              </div>
+              <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">Job Description</label>
+              <input
+                type="file"
+                accept=".pdf,.txt,.md,.csv"
+                onChange={(event) => setJdFile(event.target.files?.[0] || null)}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/70 file:mr-3 file:rounded-xl file:border-0 file:bg-blue-500 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+              />
+              <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">Question</label>
+              <textarea
+                value={jdQuestion}
+                onChange={(event) => setJdQuestion(event.target.value)}
+                rows={4}
+                className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-white/5 p-3 text-sm leading-6 text-white outline-none placeholder:text-white/35"
+              />
+              <button className="mt-4 w-full rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white">
+                Analyze JD Fit
+              </button>
+              {jdStatus && <div className="mt-4 text-sm leading-6 text-white/60">{jdStatus}</div>}
+            </form>
+          )}
+
+          {tab === 'connect' && (
+            <form onSubmit={submitLead} className="flex-1 overflow-y-auto bg-[#050914] p-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-sm leading-7 text-white/70">
+                Leave your details and Shailesh will get notified directly. Email, phone, LinkedIn, GitHub, website — whatever route works.
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {[
+                  ['name', 'Name'],
+                  ['email', 'Email'],
+                  ['phone', 'Phone'],
+                  ['linkedin', 'LinkedIn'],
+                  ['github', 'GitHub'],
+                  ['website', 'Website'],
+                ].map(([field, label]) => (
+                  <input
+                    key={field}
+                    value={leadForm[field]}
+                    onChange={(event) => updateLead(field, event.target.value)}
+                    placeholder={label}
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
+                  />
+                ))}
+              </div>
+              <input
+                value={leadForm.other_contact}
+                onChange={(event) => updateLead('other_contact', event.target.value)}
+                placeholder="Other contact route"
+                className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
+              />
+              <textarea
+                value={leadForm.message}
+                onChange={(event) => updateLead('message', event.target.value)}
+                placeholder="Message / intent"
+                rows={4}
+                className="mt-3 w-full resize-none rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white outline-none placeholder:text-white/35"
+              />
+              <button className="mt-4 w-full rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white">
+                Send Details
+              </button>
+              {leadStatus && <div className="mt-4 text-sm leading-6 text-white/60">{leadStatus}</div>}
+            </form>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
 function App() {
   const scrollToSection = (id) => {
     const el = document.getElementById(id)
@@ -226,19 +682,17 @@ function App() {
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <button
-                onClick={() => scrollToSection('projects')}
+                onClick={() => scrollToSection('ai-bot')}
                 className="rounded-2xl bg-white px-6 py-3 text-sm font-medium text-neutral-950 transition hover:scale-[1.02]"
+              >
+                Ask ShaileshGPT
+              </button>
+              <button
+                onClick={() => scrollToSection('projects')}
+                className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/10"
               >
                 View Projects
               </button>
-              <a
-                href={githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-              >
-                View GitHub
-              </a>
               <a
                 href={resumeUrl}
                 target="_blank"
@@ -299,6 +753,8 @@ function App() {
             </div>
           ))}
         </section>
+
+        <ShaileshGPTWidget />
 
         <section id="about" className="scroll-mt-24 mt-24 grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
@@ -398,7 +854,7 @@ function App() {
           </div>
           <div className="grid gap-5 lg:grid-cols-2">
             {projects.map((project) => (
-              <div key={project.title} className="group rounded-3xl border border-white/10 bg-white/5 p-6 transition duration-300 hover:-translate-y-1 hover:bg-white/[0.07] hover:shadow-xl hover:shadow-blue-950/20">
+              <div key={project.title} className={classNames('group rounded-3xl border p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-950/20', project.featured ? 'border-blue-300/30 bg-blue-500/10' : 'border-white/10 bg-white/5 hover:bg-white/[0.07]')}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="mb-3 inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-200">
