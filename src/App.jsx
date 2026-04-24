@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 const profileImage = 'https://raw.githubusercontent.com/sg2499/Personal-Documents/main/PP.jpg'
 const faviconImage = '/favicon.png'
-const previewImage = '/preview.png'
 const resumeUrl = 'https://raw.githubusercontent.com/sg2499/Personal-Documents/main/SHAILESH%20GUPTA%20-%20New%20Resume.pdf'
 const githubUrl = 'https://github.com/sg2499'
 const blogUrl = 'https://prismatic-metrics.blogspot.com/'
@@ -26,13 +25,12 @@ const stats = [
 ]
 
 const highlights = [
-  '2 Years of Industry Experience',
-  'Data Scientist',
+  '2 years of industry experience',
   'Ex-Teleperformance',
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
   'AI / LLM engineering focus',
-  'GitHub Projects + Technical Blog',
+  'GitHub projects + technical blog',
 ]
 
 const education = [
@@ -724,10 +722,7 @@ function App() {
             <div className="absolute -left-6 -top-6 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
             <div className="absolute -bottom-8 -right-4 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
             <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl shadow-blue-950/30 backdrop-blur-sm">
-              <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-neutral-900/70">
-                <img src={previewImage} alt="Shailesh Gupta portfolio preview" className="w-full object-cover" />
-              </div>
-              <div className="mt-5 grid gap-5 md:grid-cols-[0.82fr_1.18fr] md:items-center">
+              <div className="grid gap-5 md:grid-cols-[0.92fr_1.08fr] md:items-center">
                 <div className="rounded-[1.5rem] border border-white/10 bg-neutral-900/70 p-3">
                   <img src={profileImage} alt="Shailesh Gupta" className="aspect-[4/4.6] w-full rounded-[1.25rem] object-cover object-top" />
                 </div>
