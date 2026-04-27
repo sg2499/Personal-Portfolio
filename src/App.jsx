@@ -246,6 +246,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
   const [sessionApiKey, setSessionApiKey] = useState('')
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [apiKeyStatus, setApiKeyStatus] = useState('')
+  const [sessionId, setSessionId] = useState(() => crypto.randomUUID())
 
   const hasSessionApiKey = Boolean(sessionApiKey?.trim())
 
@@ -365,6 +366,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       localStorage.setItem('shaileshgpt_visitor', JSON.stringify(savedVisitor))
       setLeadForm((prev) => ({ ...prev, ...payload }))
       setVisitorStatus(`Registered as ${savedVisitor.name} (${savedVisitor.email}). Now add your own OpenAI API key below to unlock Chat and JD Fit.`)
+      setSessionId(crypto.randomUUID())
       setMessages(getCleanChatMessages())
       setTab('chat')
     } catch (error) {
@@ -410,7 +412,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
           'Content-Type': 'application/json',
           'x-openai-api-key': sessionApiKey.trim(),
         },
-        body: JSON.stringify({ message: question, history: historyForApi, visitor_id: visitor.visitor_id }),
+        body: JSON.stringify({ message: question, history: historyForApi, visitor_id: visitor.visitor_id, session_id: sessionId }),
       })
 
       if (!response.ok || !response.body) {
@@ -487,6 +489,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
     setVisitor(null)
     setSessionApiKey('')
     setApiKeyInput('')
+    setSessionId(crypto.randomUUID())
     setMessages(getCleanChatMessages())
     setVisitorStatus('Enter fresh details to start a new ShaileshGPT session.')
     setApiKeyStatus('Enter your own OpenAI API key again for the new session.')
@@ -551,6 +554,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       form.append('file', jdFile)
       form.append('question', jdQuestion)
       form.append('visitor_id', visitor.visitor_id)
+      form.append('session_id', sessionId)
 
       const response = await fetch(`${apiBase}/jd_fit`, {
         method: 'POST',
@@ -580,6 +584,67 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
         return next
       })
       setJdStatus('Could not analyze JD.')
+    }
+  }
+
+  const downloadJdReport = async () => {
+    if (!visitor?.visitor_id) {
+      setTab('access')
+      setVisitorStatus('Please enter your name and email before downloading a JD report.')
+      return
+    }
+
+    if (!hasSessionApiKey) {
+      setTab('access')
+      setApiKeyStatus('Please enter your own OpenAI API key before downloading a JD report.')
+      return
+    }
+
+    if (!configured) {
+      setJdStatus('The JD report backend is not connected yet.')
+      return
+    }
+
+    if (!jdFile) {
+      setJdStatus('Upload a JD first.')
+      return
+    }
+
+    setJdStatus('Generating downloadable PDF report...')
+
+    try {
+      const form = new FormData()
+      form.append('file', jdFile)
+      form.append('question', jdQuestion)
+      form.append('visitor_id', visitor.visitor_id)
+      form.append('session_id', sessionId)
+
+      const response = await fetch(`${apiBase}/jd_fit_report`, {
+        method: 'POST',
+        headers: {
+          'x-openai-api-key': sessionApiKey.trim(),
+        },
+        body: form,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '')
+        throw new Error(errorText || 'JD report generation failed')
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'shaileshgpt_jd_fit_report.pdf'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      setJdStatus('PDF report downloaded.')
+    } catch (error) {
+      console.error('JD report download failed:', error)
+      setJdStatus(`Could not download report. ${error.message || ''}`)
     }
   }
 
@@ -926,6 +991,67 @@ function App() {
   const scrollToSection = (id) => {
     const el = document.getElementById(id)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const downloadJdReport = async () => {
+    if (!visitor?.visitor_id) {
+      setTab('access')
+      setVisitorStatus('Please enter your name and email before downloading a JD report.')
+      return
+    }
+
+    if (!hasSessionApiKey) {
+      setTab('access')
+      setApiKeyStatus('Please enter your own OpenAI API key before downloading a JD report.')
+      return
+    }
+
+    if (!configured) {
+      setJdStatus('The JD report backend is not connected yet.')
+      return
+    }
+
+    if (!jdFile) {
+      setJdStatus('Upload a JD first.')
+      return
+    }
+
+    setJdStatus('Generating downloadable PDF report...')
+
+    try {
+      const form = new FormData()
+      form.append('file', jdFile)
+      form.append('question', jdQuestion)
+      form.append('visitor_id', visitor.visitor_id)
+      form.append('session_id', sessionId)
+
+      const response = await fetch(`${apiBase}/jd_fit_report`, {
+        method: 'POST',
+        headers: {
+          'x-openai-api-key': sessionApiKey.trim(),
+        },
+        body: form,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '')
+        throw new Error(errorText || 'JD report generation failed')
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'shaileshgpt_jd_fit_report.pdf'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      setJdStatus('PDF report downloaded.')
+    } catch (error) {
+      console.error('JD report download failed:', error)
+      setJdStatus(`Could not download report. ${error.message || ''}`)
+    }
   }
 
   return (
