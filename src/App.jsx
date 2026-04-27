@@ -25,13 +25,13 @@ const stats = [
 ]
 
 const highlights = [
-  '2 years of industry experience',
+  '2 years of Industry Experience',
   'Data Scientist',
   'Ex-Teleperformance',
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
   'AI / LLM Engineering Focus',
-  'GitHub Projects + Technical Blog',
+  'GitHub Projects + Technical blog',
 ]
 
 const education = [
@@ -282,37 +282,85 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
 
   const registerVisitor = async (event) => {
     event?.preventDefault()
-    if (!visitor) {
-      setOpen(true)
-      setTab('access')
+
+    if (visitor?.visitor_id) {
+      setVisitorStatus(`You are already registered as ${visitor.name || 'a visitor'}.`)
+      setTab('chat')
+      return
+    }
+
+    const cleanedName = visitorForm.name.trim()
+    const cleanedEmail = visitorForm.email.trim()
+
+    if (!cleanedName || !cleanedEmail) {
+      setVisitorStatus('Please enter both name and email before using ShaileshGPT.')
+      return
+    }
+
+    const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanedEmail)
+    if (!emailLooksValid) {
+      setVisitorStatus('Please enter a valid email address.')
       return
     }
 
     if (!configured) {
-      setVisitorStatus('The backend is not connected yet. Add VITE_SHAILESHGPT_API_BASE in Vercel.')
+      setVisitorStatus('Backend connection is missing. Please check VITE_SHAILESHGPT_API_BASE in Vercel.')
       return
     }
+
     setVisitorStatus('Saving your details...')
     try {
+      const payload = {
+        ...visitorForm,
+        name: cleanedName,
+        email: cleanedEmail,
+        source: 'Portfolio website widget',
+        user_agent: navigator.userAgent,
+      }
+
       const response = await fetch(`${apiBase}/visitor/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...visitorForm, source: 'Portfolio website widget', user_agent: navigator.userAgent }),
+        body: JSON.stringify(payload),
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.detail || 'Could not save details')
-      const savedVisitor = { visitor_id: data.visitor_id, name: data.name, email: data.email }
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok || !data.ok) {
+        const errorMessage =
+          typeof data.detail === 'string'
+            ? data.detail
+            : Array.isArray(data.detail)
+              ? data.detail.map((item) => item.msg || JSON.stringify(item)).join(', ')
+              : data.message || 'Could not save visitor details.'
+        throw new Error(errorMessage)
+      }
+
+      const savedVisitor = {
+        visitor_id: data.visitor_id,
+        name: data.name || cleanedName,
+        email: data.email || cleanedEmail,
+      }
+
       setVisitor(savedVisitor)
       localStorage.setItem('shaileshgpt_visitor', JSON.stringify(savedVisitor))
-      setLeadForm((prev) => ({ ...prev, ...visitorForm }))
-      setVisitorStatus(data.message || 'You can now use ShaileshGPT.')
+      setLeadForm((prev) => ({ ...prev, ...payload }))
+      setVisitorStatus(data.message || 'Thanks - you can now use ShaileshGPT.')
       setTab('chat')
     } catch (error) {
-      setVisitorStatus(error.message || 'Could not save details.')
+      console.error('Visitor registration failed:', error)
+      setVisitorStatus(error.message || 'Could not save details. Please try again.')
     }
   }
 
   const streamChat = async (question) => {
+    if (!visitor?.visitor_id) {
+      setOpen(true)
+      setTab('access')
+      setVisitorStatus('Please enter your name and email before using ShaileshGPT.')
+      return
+    }
+
     if (!configured) {
       addMessage({
         role: 'assistant',
@@ -404,6 +452,12 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
 
   const submitLead = async (event) => {
     event.preventDefault()
+    if (!visitor?.visitor_id) {
+      setTab('access')
+      setVisitorStatus('Please enter your name and email before leaving contact details.')
+      return
+    }
+
     if (!configured) {
       setLeadStatus('The contact endpoint is not connected yet. Add your API backend URL in Vercel.')
       return
@@ -572,7 +626,14 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setTab(item.id)}
+                onClick={() => {
+                  if (!visitor?.visitor_id && item.id !== 'access') {
+                    setTab('access')
+                    setVisitorStatus('Please enter your name and email before using ShaileshGPT.')
+                    return
+                  }
+                  setTab(item.id)
+                }}
                 className={classNames(
                   'flex-1 rounded-full px-3 py-2 text-xs font-semibold transition',
                   tab === item.id ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/65 hover:bg-white/10'
@@ -603,6 +664,8 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
                     value={visitorForm[field]}
                     onChange={(event) => updateVisitor(field, event.target.value)}
                     placeholder={label}
+                    type={field === 'email' ? 'email' : 'text'}
+                    required={field === 'name' || field === 'email'}
                     className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
                   />
                 ))}
@@ -613,7 +676,10 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
                 placeholder="Other contact route"
                 className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
               />
-              <button className="mt-4 w-full rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white">
+              <button
+                type="submit"
+                className="mt-4 w-full rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.01]"
+              >
                 Start using ShaileshGPT
               </button>
               {visitorStatus && <div className="mt-4 text-sm leading-6 text-white/60">{visitorStatus}</div>}
