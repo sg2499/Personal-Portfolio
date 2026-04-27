@@ -31,7 +31,7 @@ const highlights = [
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
   'AI / LLM Engineering Focus',
-  'GitHub Projects + Technical blog',
+  'GitHub Projects + Technical Blog',
 ]
 
 const education = [
@@ -335,7 +335,6 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       setLeadForm((prev) => ({ ...prev, ...payload }))
       setVisitorStatus(`Registered as ${savedVisitor.name} (${savedVisitor.email}). You can now use ShaileshGPT.`)
       setMessages(getCleanChatMessages())
-      setChatInput('')
       setTab('chat')
     } catch (error) {
       console.error('Visitor registration failed:', error)
@@ -446,7 +445,6 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
     localStorage.removeItem('shaileshgpt_visitor')
     setVisitor(null)
     setMessages(getCleanChatMessages())
-    setChatInput('')
     setVisitorStatus('Enter fresh details to start a new ShaileshGPT session.')
     setTab('access')
   }
