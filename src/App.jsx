@@ -25,7 +25,7 @@ const stats = [
 ]
 
 const highlights = [
-  '2 years of Industry Experience',
+  '2 Years of Industry Experience',
   'Data Scientist',
   'Ex-Teleperformance',
   'IIT Roorkee + IIIT Bangalore',
@@ -223,13 +223,7 @@ function MarkdownLite({ text }) {
 function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState('access')
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content:
-        "Hey, I’m ShaileshGPT — Shailesh’s portfolio twin. Ask me about his work, projects, skills, JD fit, or whether he treats cricket like a second operating system.",
-    },
-  ])
+  const [messages, setMessages] = useState(getCleanChatMessages())
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [visitorStatus, setVisitorStatus] = useState('')
@@ -340,6 +334,8 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       localStorage.setItem('shaileshgpt_visitor', JSON.stringify(savedVisitor))
       setLeadForm((prev) => ({ ...prev, ...payload }))
       setVisitorStatus(`Registered as ${savedVisitor.name} (${savedVisitor.email}). You can now use ShaileshGPT.`)
+      setMessages(getCleanChatMessages())
+      setChatInput('')
       setTab('chat')
     } catch (error) {
       console.error('Visitor registration failed:', error)
@@ -449,6 +445,8 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
   const switchVisitor = () => {
     localStorage.removeItem('shaileshgpt_visitor')
     setVisitor(null)
+    setMessages(getCleanChatMessages())
+    setChatInput('')
     setVisitorStatus('Enter fresh details to start a new ShaileshGPT session.')
     setTab('access')
   }
@@ -818,6 +816,14 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
     </>
   )
 }
+
+const getCleanChatMessages = () => [
+  {
+    role: 'assistant',
+    content:
+      "Hey, I’m ShaileshGPT — Shailesh’s portfolio twin. Ask me about his work, projects, skills, JD fit, or whether he treats cricket like a second operating system.",
+  },
+]
 
 function App() {
   const scrollToSection = (id) => {
