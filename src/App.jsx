@@ -25,13 +25,12 @@ const stats = [
 ]
 
 const highlights = [
-  '2 Years of Industry Experience',
-  'Data Scientist',
+  '2 years of industry experience',
   'Ex-Teleperformance',
   'IIT Roorkee + IIIT Bangalore',
   'Python · PySpark · Azure',
-  'AI / LLM Engineering Focus',
-  'GitHub Projects + Technical Blog',
+  'AI / LLM engineering focus',
+  'GitHub projects + technical blog',
 ]
 
 const education = [
@@ -222,7 +221,7 @@ function MarkdownLite({ text }) {
 
 function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
   const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState('chat')
+  const [tab, setTab] = useState('access')
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -232,9 +231,23 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
   ])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [visitorStatus, setVisitorStatus] = useState('')
   const [leadStatus, setLeadStatus] = useState('')
   const [jdStatus, setJdStatus] = useState('')
   const [jdQuestion, setJdQuestion] = useState('Is Shailesh a good fit for this role?')
+  const [visitor, setVisitor] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('shaileshgpt_visitor') || 'null') } catch { return null }
+  })
+  const [visitorForm, setVisitorForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    linkedin: '',
+    github: '',
+    website: '',
+    other_contact: '',
+  })
+
   const [leadForm, setLeadForm] = useState({
     name: '',
     email: '',
@@ -258,8 +271,44 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
     setLeadForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const updateVisitor = (field, value) => {
+    setVisitorForm((prev) => ({ ...prev, [field]: value }))
+  }
+
   const addMessage = (message) => {
     setMessages((prev) => [...prev, message])
+  }
+
+  const registerVisitor = async (event) => {
+    event?.preventDefault()
+    if (!visitor) {
+      setOpen(true)
+      setTab('access')
+      return
+    }
+
+    if (!configured) {
+      setVisitorStatus('The backend is not connected yet. Add VITE_SHAILESHGPT_API_BASE in Vercel.')
+      return
+    }
+    setVisitorStatus('Saving your details...')
+    try {
+      const response = await fetch(`${apiBase}/visitor/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...visitorForm, source: 'Portfolio website widget', user_agent: navigator.userAgent }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail || 'Could not save details')
+      const savedVisitor = { visitor_id: data.visitor_id, name: data.name, email: data.email }
+      setVisitor(savedVisitor)
+      localStorage.setItem('shaileshgpt_visitor', JSON.stringify(savedVisitor))
+      setLeadForm((prev) => ({ ...prev, ...visitorForm }))
+      setVisitorStatus(data.message || 'You can now use ShaileshGPT.')
+      setTab('chat')
+    } catch (error) {
+      setVisitorStatus(error.message || 'Could not save details.')
+    }
   }
 
   const streamChat = async (question) => {
@@ -282,7 +331,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       const response = await fetch(`${apiBase}/chat_stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: question, history: historyForApi }),
+        body: JSON.stringify({ message: question, history: historyForApi, visitor_id: visitor.visitor_id }),
       })
 
       if (!response.ok || !response.body) {
@@ -343,6 +392,11 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
 
   const handleStarter = async (question) => {
     setOpen(true)
+    if (!visitor) {
+      setTab('access')
+      setInput(question)
+      return
+    }
     setTab('chat')
     await streamChat(question)
   }
@@ -359,7 +413,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       const response = await fetch(`${apiBase}/lead`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...leadForm, source: 'Portfolio website widget' }),
+        body: JSON.stringify({ ...leadForm, visitor_id: visitor?.visitor_id || '', source: 'Portfolio website widget' }),
       })
       const data = await response.json()
       setLeadStatus(data.message || 'Sent.')
@@ -370,6 +424,11 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
 
   const analyzeJd = async (event) => {
     event.preventDefault()
+    if (!visitor) {
+      setTab('access')
+      setJdStatus('Please enter your name and email before using JD Fit.')
+      return
+    }
     if (!configured) {
       setJdStatus('The JD analysis backend is not connected yet. Add VITE_SHAILESHGPT_API_BASE in Vercel.')
       return
@@ -388,6 +447,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       const form = new FormData()
       form.append('file', jdFile)
       form.append('question', jdQuestion)
+      form.append('visitor_id', visitor.visitor_id)
 
       const response = await fetch(`${apiBase}/jd_fit`, {
         method: 'POST',
@@ -504,6 +564,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
 
           <div className="flex gap-2 border-b border-white/10 bg-neutral-950 p-3">
             {[
+              { id: 'access', label: visitor ? 'Visitor' : 'Start' },
               { id: 'chat', label: 'Chat' },
               { id: 'jd', label: 'JD Fit' },
               { id: 'connect', label: 'Connect' },
@@ -520,6 +581,43 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
               </button>
             ))}
           </div>
+
+
+          {tab === 'access' && (
+            <form onSubmit={registerVisitor} className="flex-1 overflow-y-auto bg-[#050914] p-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-sm leading-7 text-white/70">
+                Please enter your name and email before using ShaileshGPT. This helps track who is exploring the product, and your questions may be logged for product insights.
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {[
+                  ['name', 'Name *'],
+                  ['email', 'Email *'],
+                  ['phone', 'Phone'],
+                  ['linkedin', 'LinkedIn'],
+                  ['github', 'GitHub'],
+                  ['website', 'Website'],
+                ].map(([field, label]) => (
+                  <input
+                    key={field}
+                    value={visitorForm[field]}
+                    onChange={(event) => updateVisitor(field, event.target.value)}
+                    placeholder={label}
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
+                  />
+                ))}
+              </div>
+              <input
+                value={visitorForm.other_contact}
+                onChange={(event) => updateVisitor('other_contact', event.target.value)}
+                placeholder="Other contact route"
+                className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
+              />
+              <button className="mt-4 w-full rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white">
+                Start using ShaileshGPT
+              </button>
+              {visitorStatus && <div className="mt-4 text-sm leading-6 text-white/60">{visitorStatus}</div>}
+            </form>
+          )}
 
           {tab === 'chat' && (
             <>
