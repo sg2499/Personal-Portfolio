@@ -283,12 +283,6 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
   const registerVisitor = async (event) => {
     event?.preventDefault()
 
-    if (visitor?.visitor_id) {
-      setVisitorStatus(`You are already registered as ${visitor.name || 'a visitor'}.`)
-      setTab('chat')
-      return
-    }
-
     const cleanedName = visitorForm.name.trim()
     const cleanedEmail = visitorForm.email.trim()
 
@@ -345,7 +339,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       setVisitor(savedVisitor)
       localStorage.setItem('shaileshgpt_visitor', JSON.stringify(savedVisitor))
       setLeadForm((prev) => ({ ...prev, ...payload }))
-      setVisitorStatus(data.message || 'Thanks - you can now use ShaileshGPT.')
+      setVisitorStatus(`Registered as ${savedVisitor.name} (${savedVisitor.email}). You can now use ShaileshGPT.`)
       setTab('chat')
     } catch (error) {
       console.error('Visitor registration failed:', error)
@@ -384,7 +378,8 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       })
 
       if (!response.ok || !response.body) {
-        throw new Error('Chat stream unavailable')
+        const errorText = await response.text().catch(() => '')
+        throw new Error(errorText || `Chat stream unavailable with status ${response.status}`)
       }
 
       const reader = response.body.getReader()
@@ -417,12 +412,13 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
         }
       }
     } catch (error) {
+      console.error('ShaileshGPT chat request failed:', error)
       setMessages((prev) => {
         const next = [...prev]
         next[next.length - 1] = {
           role: 'assistant',
           content:
-            'The portfolio assistant is temporarily unavailable. Very dramatic, yes — but the rest of the site still shows the receipts.',
+            `The portfolio assistant is temporarily unavailable. Backend said: ${error.message || 'unknown error'}.`,
         }
         return next
       })
@@ -448,6 +444,13 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
     }
     setTab('chat')
     await streamChat(question)
+  }
+
+  const switchVisitor = () => {
+    localStorage.removeItem('shaileshgpt_visitor')
+    setVisitor(null)
+    setVisitorStatus('Enter fresh details to start a new ShaileshGPT session.')
+    setTab('access')
   }
 
   const submitLead = async (event) => {
@@ -683,11 +686,25 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
                 Start using ShaileshGPT
               </button>
               {visitorStatus && <div className="mt-4 text-sm leading-6 text-white/60">{visitorStatus}</div>}
+              {visitor?.visitor_id && (
+                <button
+                  type="button"
+                  onClick={switchVisitor}
+                  className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white/75 transition hover:bg-white/10 hover:text-white"
+                >
+                  Switch visitor / start fresh
+                </button>
+              )}
             </form>
           )}
 
           {tab === 'chat' && (
             <>
+              {visitor?.visitor_id && (
+                <div className="border-b border-white/10 bg-[#050914] px-4 py-2 text-xs text-white/50">
+                  Session active for <span className="font-semibold text-white/75">{visitor.name}</span> · {visitor.email}
+                </div>
+              )}
               <div className="flex-1 overflow-y-auto bg-[#050914] p-4">
                 <div className="space-y-3">
                   {messages.map((message, index) => (
