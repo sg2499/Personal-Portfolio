@@ -243,6 +243,37 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
     other_contact: '',
   })
 
+  const [sessionApiKey, setSessionApiKey] = useState('')
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [apiKeyStatus, setApiKeyStatus] = useState('')
+
+  const hasSessionApiKey = Boolean(sessionApiKey?.trim())
+
+  const saveSessionApiKey = (event) => {
+    event?.preventDefault()
+    const key = apiKeyInput.trim()
+
+    if (!key) {
+      setApiKeyStatus('Please enter your own OpenAI API key before using ShaileshGPT.')
+      return
+    }
+
+    if (!key.startsWith('sk-')) {
+      setApiKeyStatus('That does not look like a standard OpenAI API key. Please check and try again.')
+      return
+    }
+
+    setSessionApiKey(key)
+    setApiKeyInput('')
+    setApiKeyStatus('API key saved for this browser session only. You can now use Chat and JD Fit.')
+  }
+
+  const clearSessionApiKey = () => {
+    setSessionApiKey('')
+    setApiKeyInput('')
+    setApiKeyStatus('API key removed from this browser session.')
+  }
+
   const [leadForm, setLeadForm] = useState({
     name: '',
     email: '',
@@ -333,7 +364,7 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       setVisitor(savedVisitor)
       localStorage.setItem('shaileshgpt_visitor', JSON.stringify(savedVisitor))
       setLeadForm((prev) => ({ ...prev, ...payload }))
-      setVisitorStatus(`Registered as ${savedVisitor.name} (${savedVisitor.email}). You can now use ShaileshGPT.`)
+      setVisitorStatus(`Registered as ${savedVisitor.name} (${savedVisitor.email}). Now add your own OpenAI API key below to unlock Chat and JD Fit.`)
       setMessages(getCleanChatMessages())
       setTab('chat')
     } catch (error) {
@@ -347,6 +378,13 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       setOpen(true)
       setTab('access')
       setVisitorStatus('Please enter your name and email before using ShaileshGPT.')
+      return
+    }
+
+    if (!hasSessionApiKey) {
+      setOpen(true)
+      setTab('access')
+      setApiKeyStatus('Please enter your own OpenAI API key before using the chat. This public bot does not use Shailesh’s private API credits.')
       return
     }
 
@@ -368,7 +406,10 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
     try {
       const response = await fetch(`${apiBase}/chat_stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-openai-api-key': sessionApiKey.trim(),
+        },
         body: JSON.stringify({ message: question, history: historyForApi, visitor_id: visitor.visitor_id }),
       })
 
@@ -444,8 +485,11 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
   const switchVisitor = () => {
     localStorage.removeItem('shaileshgpt_visitor')
     setVisitor(null)
+    setSessionApiKey('')
+    setApiKeyInput('')
     setMessages(getCleanChatMessages())
     setVisitorStatus('Enter fresh details to start a new ShaileshGPT session.')
+    setApiKeyStatus('Enter your own OpenAI API key again for the new session.')
     setTab('access')
   }
 
@@ -483,6 +527,11 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
       setJdStatus('Please enter your name and email before using JD Fit.')
       return
     }
+    if (!hasSessionApiKey) {
+      setTab('access')
+      setApiKeyStatus('Please enter your own OpenAI API key before using JD Fit. This keeps the public bot from using Shailesh’s private credits.')
+      return
+    }
     if (!configured) {
       setJdStatus('The JD analysis backend is not connected yet. Add VITE_SHAILESHGPT_API_BASE in Vercel.')
       return
@@ -505,6 +554,9 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
 
       const response = await fetch(`${apiBase}/jd_fit`, {
         method: 'POST',
+        headers: {
+          'x-openai-api-key': sessionApiKey.trim(),
+        },
         body: form,
       })
 
@@ -626,11 +678,23 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
               <button
                 key={item.id}
                 onClick={() => {
-                  if (!visitor?.visitor_id && item.id !== 'access') {
+                  if (item.id === 'access') {
+                    setTab('access')
+                    return
+                  }
+
+                  if (!visitor?.visitor_id) {
                     setTab('access')
                     setVisitorStatus('Please enter your name and email before using ShaileshGPT.')
                     return
                   }
+
+                  if ((item.id === 'chat' || item.id === 'jd') && !hasSessionApiKey) {
+                    setTab('access')
+                    setApiKeyStatus('Please enter your own OpenAI API key before using Chat or JD Fit.')
+                    return
+                  }
+
                   setTab(item.id)
                 }}
                 className={classNames(
@@ -682,6 +746,41 @@ function ShaileshGPTWidget({ apiBase = defaultApiBase }) {
                 Start using ShaileshGPT
               </button>
               {visitorStatus && <div className="mt-4 text-sm leading-6 text-white/60">{visitorStatus}</div>}
+
+              <div className="mt-5 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+                <div className="text-sm font-semibold text-white">Required: use your own OpenAI API key</div>
+                <p className="mt-2 text-xs leading-6 text-white/60">
+                  This public portfolio bot does not use Shailesh’s private OpenAI credits. Please enter your own key to use Chat and JD Fit.
+                  Your key stays only in this active browser session, is not stored in Supabase, and is not written to disk.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={apiKeyInput}
+                    onChange={(event) => setApiKeyInput(event.target.value)}
+                    placeholder="sk-..."
+                    type="password"
+                    className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveSessionApiKey}
+                    className="rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 px-4 py-3 text-xs font-bold text-white"
+                  >
+                    Save Key
+                  </button>
+                </div>
+                {apiKeyStatus && <div className="mt-3 text-xs leading-5 text-white/65">{apiKeyStatus}</div>}
+                {hasSessionApiKey && (
+                  <button
+                    type="button"
+                    onClick={clearSessionApiKey}
+                    className="mt-3 rounded-xl border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:bg-white/10 hover:text-white"
+                  >
+                    Remove saved session key
+                  </button>
+                )}
+              </div>
+
               {visitor?.visitor_id && (
                 <button
                   type="button"
